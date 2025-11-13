@@ -1,0 +1,150 @@
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Transactions
+export const getTransactions = (params = {}) => {
+  return api.get('/api/transactions/', { params });
+};
+
+export const getTransaction = (id) => {
+  return api.get(`/api/transactions/${id}`);
+};
+
+export const getSimilarTransactionsCount = (params) => {
+  return api.get('/api/transactions/', { params });
+};
+
+export const updateTransaction = (id, data) => {
+  return api.put(`/api/transactions/${id}`, data);
+};
+
+export const bulkCategorize = (transactionIds, categoryId, subcategoryId = null) => {
+  return api.post('/api/transactions/bulk-categorize', {
+    transaction_ids: transactionIds,
+    category_id: categoryId,
+    subcategory_id: subcategoryId
+  });
+};
+
+export const bulkDelete = (transactionIds) => {
+  return api.post('/api/transactions/bulk-delete', transactionIds);
+};
+
+export const deleteTransaction = (id) => {
+  return api.delete(`/api/transactions/${id}`);
+};
+
+export const getUncategorizedCount = () => {
+  return api.get('/api/transactions/uncategorized/count');
+};
+
+// Categories
+export const getCategories = () => {
+  return api.get('/api/categories/');
+};
+
+export const createCategory = (data) => {
+  return api.post('/api/categories/', data);
+};
+
+export const updateCategory = (id, data) => {
+  return api.put(`/api/categories/${id}`, data);
+};
+
+export const deleteCategory = (id) => {
+  return api.delete(`/api/categories/${id}`);
+};
+
+export const getSubcategories = (categoryId) => {
+  return api.get(`/api/categories/${categoryId}/subcategories`);
+};
+
+export const createSubcategory = (categoryId, data) => {
+  return api.post(`/api/categories/${categoryId}/subcategories`, data);
+};
+
+export const updateSubcategory = (id, data) => {
+  return api.put(`/api/categories/subcategories/${id}`, data);
+};
+
+export const deleteSubcategory = (id) => {
+  return api.delete(`/api/categories/subcategories/${id}`);
+};
+
+export const initDefaultCategories = () => {
+  return api.post('/api/categories/init-default');
+};
+
+// Upload
+export const uploadCSV = (files, bankType = null) => {
+  const formData = new FormData();
+  
+  // Soportar múltiples archivos o un solo archivo
+  if (Array.isArray(files)) {
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+  } else {
+    formData.append('files', files);
+  }
+  
+  if (bankType) {
+    formData.append('bank_type', bankType);
+  }
+
+  return api.post('/api/upload/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+export const getBankTypes = () => {
+  return api.get('/api/upload/bank-types');
+};
+
+export const detectBank = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return api.post('/api/upload/detect-bank', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// Reports
+export const getMonthlyReport = (months = 12) => {
+  return api.get('/api/reports/monthly', { params: { months } });
+};
+
+export const getCategoryReport = (startDate, endDate) => {
+  return api.get('/api/reports/by-category', { 
+    params: { start_date: startDate, end_date: endDate } 
+  });
+};
+
+export const getTopExpenses = (limit = 10, startDate, endDate) => {
+  return api.get('/api/reports/top-expenses', { 
+    params: { limit, start_date: startDate, end_date: endDate } 
+  });
+};
+
+export const getReportSummary = (months = 6) => {
+  return api.get('/api/reports/summary', { params: { months } });
+};
+
+export const getStats = () => {
+  return api.get('/api/reports/stats');
+};
+
+export default api;
