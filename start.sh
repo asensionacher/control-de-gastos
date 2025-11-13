@@ -9,7 +9,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo "❌ Docker Compose no está instalado. Por favor instala Docker Compose primero."
     exit 1
 fi
