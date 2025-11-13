@@ -78,11 +78,22 @@ cd control-gastos
 - ✅ Crea el archivo `.env` con la configuración
 - ✅ Construye e inicia los contenedores
 - ✅ Crea el directorio de datos
+- ✅ Usa SQLite por defecto (archivo local)
 
 **Alternativa manual:**
 ```bash
 docker-compose up -d
 ```
+
+**¿Quieres usar PostgreSQL en lugar de SQLite?**
+```bash
+# Usar PostgreSQL (recomendado para producción o muchos usuarios)
+docker compose -f docker-compose.postgres.yml up -d
+
+# Ver guía completa: POSTGRESQL_GUIDE.md
+```
+
+> 📚 **Base de datos**: Por defecto usa **SQLite** (simple, sin configuración). Para producción o muchos usuarios, consulta [POSTGRESQL_GUIDE.md](POSTGRESQL_GUIDE.md)
 
 ### Instalación Manual (sin Docker)
 

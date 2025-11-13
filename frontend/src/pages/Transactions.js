@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getTransactions, getCategories, updateTransaction, deleteTransaction, bulkCategorize, bulkDelete } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { getTransactions, getCategories, updateTransaction, deleteTransaction, bulkCategorize, bulkDelete, exportTransactions, importTransactions } from '../services/api';
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -10,6 +10,9 @@ function Transactions() {
   const [bulkCategory, setBulkCategory] = useState('');
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef(null);
   const itemsPerPage = 100;
   const [filters, setFilters] = useState({
     bank_type: '',
@@ -55,10 +58,10 @@ function Transactions() {
       if (filters.description && filters.description.length >= 3) params.description = filters.description;
       if (filters.start_date) params.start_date = filters.start_date;
       if (filters.end_date) params.end_date = filters.end_date;
-      
+
       const response = await getTransactions(params);
       setTransactions(response.data);
-      
+
       // Get total count for pagination
       const countParams = { ...params };
       delete countParams.skip;
@@ -87,10 +90,10 @@ function Transactions() {
       if (filters.description && filters.description.length >= 3) params.description = filters.description;
       if (filters.start_date) params.start_date = filters.start_date;
       if (filters.end_date) params.end_date = filters.end_date;
-      
+
       const response = await getTransactions(params);
       setTransactions(response.data);
-      
+
       // Update total count
       const countParams = { ...params };
       delete countParams.skip;
@@ -177,7 +180,7 @@ function Transactions() {
       alert('Selecciona al menos una transacción');
       return;
     }
-    
+
     if (bulkCategory === '') {
       alert('Selecciona una categoría');
       return;
@@ -219,29 +222,29 @@ function Transactions() {
       // Find the transaction to get its description
       const transaction = transactions.find(t => t.id === transactionId);
       if (!transaction) return;
-      
+
       // Convertir vacío a null
       const categoryValue = categoryId === '' ? null : parseInt(categoryId);
-      
+
       // Count how many transactions have the same description
       const similarTransactions = transactions.filter(
         t => t.description === transaction.description
       );
-      
+
       let applyToAll = false;
-      
+
       // If there are more transactions with the same description, ask
       if (similarTransactions.length > 1) {
-        const categoryName = categoryValue === null ? 'Sin categoría' : 
+        const categoryName = categoryValue === null ? 'Sin categoría' :
           categories.find(c => c.id === categoryValue)?.name || 'esta categoría';
-        
+
         const confirmed = window.confirm(
           `Hay ${similarTransactions.length} transacciones con la descripción "${transaction.description}".\n\n` +
           `¿Deseas aplicar "${categoryName}" a todas ellas?`
         );
         applyToAll = confirmed;
       }
-      
+
       await updateTransaction(transactionId, {
         category_id: categoryValue,
         apply_to_all: applyToAll
@@ -284,6 +287,56 @@ function Transactions() {
   const handleGoToPage = (pageNum) => {
     setPage(pageNum);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await exportTransactions();
+    } catch (error) {
+      console.error('Error exportando transacciones:', error);
+      alert('Error al exportar las transacciones');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      setImporting(true);
+      const result = await importTransactions(file);
+
+      let message = `Importación completada:\n`;
+      message += `✓ ${result.imported} transacciones importadas\n`;
+      if (result.duplicates > 0) {
+        message += `⊘ ${result.duplicates} duplicados omitidos\n`;
+      }
+      if (result.errors > 0) {
+        message += `✗ ${result.errors} errores\n`;
+        if (result.error_details && result.error_details.length > 0) {
+          message += `\nPrimeros errores:\n${result.error_details.join('\n')}`;
+        }
+      }
+
+      alert(message);
+      reloadTransactionsWithoutScroll();
+    } catch (error) {
+      console.error('Error importando transacciones:', error);
+      alert('Error al importar el archivo CSV');
+    } finally {
+      setImporting(false);
+      // Limpiar el input para permitir importar el mismo archivo otra vez
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -384,13 +437,35 @@ function Transactions() {
             />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={handleApplyFilters}>
             Aplicar Filtros
           </button>
           <button className="btn btn-secondary" onClick={handleClearFilters}>
             Limpiar Filtros
           </button>
+          <button
+            className="btn btn-secondary"
+            onClick={handleExport}
+            disabled={exporting}
+            style={{ marginLeft: 'auto' }}
+          >
+            {exporting ? 'Exportando...' : '📥 Exportar CSV'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={triggerFileInput}
+            disabled={importing}
+          >
+            {importing ? 'Importando...' : '📤 Importar CSV'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            style={{ display: 'none' }}
+          />
         </div>
       </div>
 
@@ -406,9 +481,9 @@ function Transactions() {
 
         {/* Bulk actions */}
         {selectedIds.length > 0 && (
-          <div style={{ 
-            padding: '1rem', 
-            background: 'rgba(0, 217, 163, 0.1)', 
+          <div style={{
+            padding: '1rem',
+            background: 'rgba(0, 217, 163, 0.1)',
             borderBottom: '1px solid #333',
             display: 'flex',
             alignItems: 'center',
@@ -429,20 +504,20 @@ function Transactions() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-            <button 
+            <button
               className="btn btn-primary btn-small"
               onClick={handleBulkCategorize}
               disabled={!bulkCategory}
             >
               Categorizar
             </button>
-            <button 
+            <button
               className="btn btn-danger btn-small"
               onClick={handleBulkDelete}
             >
               Eliminar
             </button>
-            <button 
+            <button
               className="btn btn-secondary btn-small"
               onClick={() => setSelectedIds([])}
             >
@@ -480,11 +555,11 @@ function Transactions() {
               </thead>
               <tbody>
                 {transactions.map(transaction => (
-                  <tr 
+                  <tr
                     key={transaction.id}
-                    style={{ 
-                      background: selectedIds.includes(transaction.id) 
-                        ? 'rgba(0, 217, 163, 0.05)' 
+                    style={{
+                      background: selectedIds.includes(transaction.id)
+                        ? 'rgba(0, 217, 163, 0.05)'
                         : 'transparent'
                     }}
                   >
@@ -528,7 +603,7 @@ function Transactions() {
                           className="form-control"
                           value={transaction.category_id || ''}
                           onChange={(e) => handleQuickCategorize(transaction.id, e.target.value)}
-                          style={{ 
+                          style={{
                             background: transaction.category_id ? '#1a1a1a' : 'rgba(255, 159, 28, 0.1)',
                             border: transaction.category_id ? '1px solid #333' : '1px solid rgba(255, 159, 28, 0.3)'
                           }}
@@ -571,22 +646,22 @@ function Transactions() {
 
         {/* Paginación */}
         {!loading && totalPages > 1 && (
-          <div style={{ 
-            padding: '1rem', 
+          <div style={{
+            padding: '1rem',
             borderTop: '1px solid #333',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             gap: '0.5rem'
           }}>
-            <button 
+            <button
               className="btn btn-small btn-secondary"
               onClick={handlePreviousPage}
               disabled={page === 1}
             >
               ← Anterior
             </button>
-            
+
             <div style={{ display: 'flex', gap: '0.25rem' }}>
               {/* First page */}
               {page > 3 && (
@@ -600,7 +675,7 @@ function Transactions() {
                   {page > 4 && <span style={{ padding: '0.5rem', color: '#a8a8a8' }}>...</span>}
                 </>
               )}
-              
+
               {/* Pages around current */}
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(p => p >= page - 2 && p <= page + 2)
@@ -614,7 +689,7 @@ function Transactions() {
                     {p}
                   </button>
                 ))}
-              
+
               {/* Last page */}
               {page < totalPages - 2 && (
                 <>
@@ -628,8 +703,8 @@ function Transactions() {
                 </>
               )}
             </div>
-            
-            <button 
+
+            <button
               className="btn btn-small btn-secondary"
               onClick={handleNextPage}
               disabled={page === totalPages}

@@ -79,6 +79,47 @@ export const bulkDelete = (transactionIds) => {
   return api.post('/api/transactions/bulk-delete', transactionIds);
 };
 
+export const exportTransactions = async () => {
+  const response = await api.get('/api/transactions/export', {
+    responseType: 'blob'
+  });
+
+  // Crear un blob URL y disparar la descarga
+  const blob = new Blob([response.data], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+
+  // Obtener el nombre del archivo de los headers o usar uno por defecto
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = 'transacciones.csv';
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+    if (filenameMatch) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+
+  return response;
+};
+
+export const importTransactions = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return api.post('/api/transactions/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }).then(response => response.data);
+};
+
 export const deleteTransaction = (id) => {
   return api.delete(`/api/transactions/${id}`);
 };

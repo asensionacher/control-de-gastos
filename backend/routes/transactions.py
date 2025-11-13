@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from models import Transaction as TransactionModel, StoreMapping, User
+from models import Transaction as TransactionModel, StoreMapping, User, Category, Subcategory
 from schemas import Transaction, TransactionUpdate
 from datetime import datetime
 from pydantic import BaseModel
 from auth import get_current_active_user
+import csv
+import io
+import hashlib
 
 router = APIRouter()
 
@@ -60,6 +64,210 @@ def get_transactions(
     
     transactions = query.order_by(TransactionModel.date.desc()).offset(skip).limit(limit).all()
     return transactions
+
+
+@router.get("/export")
+def export_transactions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Exporta todas las transacciones del usuario en formato CSV
+    """
+    # Obtener todas las transacciones del usuario con sus relaciones
+    transactions = db.query(TransactionModel).filter(
+        TransactionModel.user_id == current_user.id
+    ).order_by(TransactionModel.date.desc()).all()
+    
+    # Crear CSV en memoria
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Escribir encabezados
+    writer.writerow([
+        'id',
+        'date',
+        'description',
+        'amount',
+        'bank_type',
+        'balance',
+        'reference',
+        'extra_info',
+        'category',
+        'subcategory',
+        'transaction_hash',
+        'created_at'
+    ])
+    
+    # Escribir datos
+    for transaction in transactions:
+        category_name = transaction.category.name if transaction.category else ''
+        subcategory_name = transaction.subcategory.name if transaction.subcategory else ''
+        
+        writer.writerow([
+            transaction.id,
+            transaction.date.isoformat() if transaction.date else '',
+            transaction.description,
+            transaction.amount,
+            transaction.bank_type,
+            transaction.balance if transaction.balance else '',
+            transaction.reference if transaction.reference else '',
+            transaction.extra_info if transaction.extra_info else '',
+            category_name,
+            subcategory_name,
+            transaction.transaction_hash,
+            transaction.created_at.isoformat() if transaction.created_at else ''
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    headers = {
+        'Content-Disposition': f'attachment; filename="transacciones_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    }
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers=headers
+    )
+
+
+@router.post("/import")
+async def import_transactions(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Importa transacciones desde un archivo CSV.
+    Detecta duplicados usando transaction_hash.
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un CSV")
+    
+    try:
+        # Leer el contenido del archivo
+        contents = await file.read()
+        csv_text = contents.decode('utf-8')
+        
+        # Parsear CSV
+        csv_reader = csv.DictReader(io.StringIO(csv_text))
+        
+        imported_count = 0
+        duplicate_count = 0
+        error_count = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):  # start=2 porque la fila 1 son los headers
+            try:
+                # Validar campos requeridos
+                if not all(key in row for key in ['date', 'description', 'amount', 'bank_type']):
+                    errors.append(f"Fila {row_num}: Faltan campos requeridos")
+                    error_count += 1
+                    continue
+                
+                # Parsear fecha
+                try:
+                    date = datetime.fromisoformat(row['date'].replace('Z', '+00:00'))
+                except:
+                    errors.append(f"Fila {row_num}: Formato de fecha inválido")
+                    error_count += 1
+                    continue
+                
+                # Parsear importe
+                try:
+                    amount = float(row['amount'])
+                except:
+                    errors.append(f"Fila {row_num}: Importe inválido")
+                    error_count += 1
+                    continue
+                
+                # Generar transaction_hash si no existe
+                if 'transaction_hash' in row and row['transaction_hash']:
+                    transaction_hash = row['transaction_hash']
+                else:
+                    # Generar hash como en el upload original
+                    hash_string = f"{date.date()}_{row['description']}_{amount}_{row['bank_type']}"
+                    transaction_hash = hashlib.md5(hash_string.encode()).hexdigest()
+                
+                # Verificar si ya existe
+                existing = db.query(TransactionModel).filter(
+                    TransactionModel.transaction_hash == transaction_hash,
+                    TransactionModel.user_id == current_user.id
+                ).first()
+                
+                if existing:
+                    duplicate_count += 1
+                    continue
+                
+                # Buscar categoría si existe en el CSV
+                category_id = None
+                subcategory_id = None
+                
+                if row.get('category'):
+                    category = db.query(Category).filter(
+                        Category.name == row['category'],
+                        Category.user_id == current_user.id
+                    ).first()
+                    
+                    if category:
+                        category_id = category.id
+                        
+                        if row.get('subcategory'):
+                            subcategory = db.query(Subcategory).filter(
+                                Subcategory.name == row['subcategory'],
+                                Subcategory.category_id == category_id,
+                                Subcategory.user_id == current_user.id
+                            ).first()
+                            
+                            if subcategory:
+                                subcategory_id = subcategory.id
+                
+                # Parsear balance si existe
+                balance = None
+                if row.get('balance') and row['balance']:
+                    try:
+                        balance = float(row['balance'])
+                    except:
+                        pass
+                
+                # Crear transacción
+                new_transaction = TransactionModel(
+                    date=date,
+                    description=row['description'],
+                    amount=amount,
+                    bank_type=row['bank_type'],
+                    balance=balance,
+                    reference=row.get('reference', ''),
+                    extra_info=row.get('extra_info', ''),
+                    category_id=category_id,
+                    subcategory_id=subcategory_id,
+                    transaction_hash=transaction_hash,
+                    user_id=current_user.id
+                )
+                
+                db.add(new_transaction)
+                imported_count += 1
+                
+            except Exception as e:
+                errors.append(f"Fila {row_num}: {str(e)}")
+                error_count += 1
+                continue
+        
+        # Guardar cambios
+        db.commit()
+        
+        return {
+            "message": "Importación completada",
+            "imported": imported_count,
+            "duplicates": duplicate_count,
+            "errors": error_count,
+            "error_details": errors[:10] if errors else []  # Limitar a 10 primeros errores
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
+
 
 @router.get("/{transaction_id}", response_model=Transaction)
 def get_transaction(
@@ -266,3 +474,4 @@ def bulk_delete_transactions(
         "message": f"Se eliminaron {deleted_count} transacciones",
         "deleted_count": deleted_count
     }
+
