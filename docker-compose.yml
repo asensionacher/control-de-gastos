@@ -16,6 +16,13 @@ services:
     environment:
       - DATABASE_PATH=/app/data/control_gastos.db
       - PYTHONUNBUFFERED=1
+      # Seguridad: Descomenta para cerrar el registro de nuevos usuarios
+      # - REGISTRATION_ENABLED=false
+      # Rate limiting (opcional, valores por defecto ya configurados)
+      # - REGISTER_MAX_ATTEMPTS=5
+      # - REGISTER_WINDOW_MINUTES=60
+      # - LOGIN_MAX_ATTEMPTS=10
+      # - LOGIN_WINDOW_MINUTES=15
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 

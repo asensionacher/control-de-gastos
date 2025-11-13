@@ -81,15 +81,19 @@ async def upload_csv(
                 # Insertar transacciones
                 for trans_data in transactions:
                     try:
-                        # Buscar mapeo de tienda para auto-categorización
+                        # Buscar mapeo de tienda para auto-categorización del usuario
                         store_name = trans_data['description'].split()[0] if trans_data['description'] else ""
                         store_mapping = db.query(StoreMapping).filter(
-                            StoreMapping.store_name == store_name
+                            StoreMapping.store_name == store_name,
+                            StoreMapping.user_id == current_user.id
                         ).first()
                         
                         if store_mapping:
                             trans_data['category_id'] = store_mapping.category_id
                             trans_data['subcategory_id'] = store_mapping.subcategory_id
+                        
+                        # Añadir el user_id a la transacción
+                        trans_data['user_id'] = current_user.id
                         
                         # Crear transacción
                         transaction = TransactionModel(**trans_data)

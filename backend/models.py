@@ -17,9 +17,11 @@ class Category(Base):
     __tablename__ = "categories"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
+    user = relationship("User")
     subcategories = relationship("Subcategory", back_populates="category", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="category")
     store_mappings = relationship("StoreMapping", back_populates="category")
@@ -30,8 +32,10 @@ class Subcategory(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
+    user = relationship("User")
     category = relationship("Category", back_populates="subcategories")
     transactions = relationship("Transaction", back_populates="subcategory")
 
@@ -39,6 +43,9 @@ class Transaction(Base):
     __tablename__ = "transactions"
     
     id = Column(Integer, primary_key=True, index=True)
+    
+    # Usuario propietario
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Información del banco
     bank_type = Column(String, nullable=False)  # kutxabank_account, kutxabank_card, openbank, imaginbank
@@ -58,12 +65,13 @@ class Transaction(Base):
     subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=True)
     
     # Control de duplicados - hash del contenido importante
-    transaction_hash = Column(String, unique=True, nullable=False, index=True)
+    transaction_hash = Column(String, nullable=False, index=True)
     
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    user = relationship("User")
     category = relationship("Category", back_populates="transactions")
     subcategory = relationship("Subcategory", back_populates="transactions")
 
@@ -72,10 +80,12 @@ class StoreMapping(Base):
     __tablename__ = "store_mappings"
     
     id = Column(Integer, primary_key=True, index=True)
-    store_name = Column(String, unique=True, nullable=False, index=True)
+    store_name = Column(String, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    user = relationship("User")
     category = relationship("Category", back_populates="store_mappings")

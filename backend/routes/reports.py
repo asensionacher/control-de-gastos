@@ -28,7 +28,8 @@ def get_monthly_report(
         func.sum(case((TransactionModel.amount > 0, TransactionModel.amount), else_=0)).label('income'),
         func.sum(case((TransactionModel.amount < 0, TransactionModel.amount), else_=0)).label('expenses')
     ).filter(
-        TransactionModel.date >= start_date
+        TransactionModel.date >= start_date,
+        TransactionModel.user_id == current_user.id
     ).group_by('year', 'month').order_by('year', 'month').all()
     
     monthly_reports = []
@@ -58,7 +59,8 @@ def get_category_report(
     ).join(
         TransactionModel, TransactionModel.category_id == CategoryModel.id
     ).filter(
-        TransactionModel.amount < 0  # Solo gastos
+        TransactionModel.amount < 0,  # Solo gastos
+        TransactionModel.user_id == current_user.id
     )
     
     if start_date:
@@ -99,7 +101,8 @@ def get_top_expenses(
 ):
     """Obtener los gastos más grandes"""
     query = db.query(TransactionModel).filter(
-        TransactionModel.amount < 0
+        TransactionModel.amount < 0,
+        TransactionModel.user_id == current_user.id
     )
     
     if start_date:
@@ -150,15 +153,20 @@ def get_stats(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtener estadísticas generales"""
-    total_transactions = db.query(TransactionModel).count()
+    total_transactions = db.query(TransactionModel).filter(
+        TransactionModel.user_id == current_user.id
+    ).count()
     total_income = db.query(func.sum(TransactionModel.amount)).filter(
-        TransactionModel.amount > 0
+        TransactionModel.amount > 0,
+        TransactionModel.user_id == current_user.id
     ).scalar() or 0
     total_expenses = db.query(func.sum(TransactionModel.amount)).filter(
-        TransactionModel.amount < 0
+        TransactionModel.amount < 0,
+        TransactionModel.user_id == current_user.id
     ).scalar() or 0
     uncategorized = db.query(TransactionModel).filter(
-        TransactionModel.category_id == None
+        TransactionModel.category_id == None,
+        TransactionModel.user_id == current_user.id
     ).count()
     
     return {

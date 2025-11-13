@@ -122,21 +122,41 @@ npm start
 
 > 💡 **Nota**: Para desarrollo, consulta la sección [🛠️ Desarrollo](#%EF%B8%8F-desarrollo) más abajo.
 
-## 🔐 Autenticación
+## 🔐 Autenticación y Seguridad
 
-La aplicación incluye un sistema completo de autenticación:
+La aplicación incluye múltiples capas de seguridad:
 
-- **Registro de usuarios** con username y contraseña
+### Autenticación
+- **Registro de usuarios** con validación robusta
 - **Tokens JWT** con validez de 30 días
 - **Protección de todas las rutas** de la API
+- **Aislamiento total de datos** por usuario
 - **Gestión automática de sesión** en el frontend
 
+### Protecciones Anti-Abuso
+- ✅ **Rate Limiting**: Límite de 5 registros por hora desde la misma IP
+- ✅ **Validación de contraseñas**: Requiere mayúsculas, minúsculas y números (mín. 8 caracteres)
+- ✅ **Control de registro**: Posibilidad de deshabilitar registro público
+- ✅ **Protección contra fuerza bruta**: 10 intentos de login cada 15 minutos
+
 **Primera vez:**
-1. Accede a `/register` y crea tu usuario
+1. Accede a `/register` y crea tu usuario (contraseña fuerte requerida)
 2. Inicia sesión en `/login`
 3. El token se guarda automáticamente y se renueva en cada petición
 
-> 📚 Más detalles en [AUTH_IMPLEMENTATION.md](AUTH_IMPLEMENTATION.md)
+**Para cerrar el registro después de crear tus usuarios:**
+```bash
+# Ejecuta el script de gestión de seguridad
+./manage_security.sh
+
+# O edita docker-compose.yml y descomenta:
+# - REGISTRATION_ENABLED=false
+
+# Luego reinicia:
+docker compose restart backend
+```
+
+> 📚 Más detalles en [AUTH_IMPLEMENTATION.md](AUTH_IMPLEMENTATION.md) y [SECURITY_MEASURES.md](SECURITY_MEASURES.md)
 
 ## 📖 Uso
 

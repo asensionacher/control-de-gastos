@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List
+import re
 
 # User & Auth Schemas
 class UserBase(BaseModel):
@@ -8,6 +9,35 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        if len(v) < 3:
+            raise ValueError('El nombre de usuario debe tener al menos 3 caracteres')
+        if len(v) > 50:
+            raise ValueError('El nombre de usuario no puede tener más de 50 caracteres')
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError('El nombre de usuario solo puede contener letras, números, guiones y guiones bajos')
+        return v
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('La contraseña debe tener al menos 8 caracteres')
+        if len(v) > 100:
+            raise ValueError('La contraseña no puede tener más de 100 caracteres')
+        
+        # Validar complejidad de contraseña
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        
+        return v
 
 class UserLogin(BaseModel):
     username: str

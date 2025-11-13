@@ -18,7 +18,7 @@ def get_categories(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtener todas las categorías con sus subcategorías"""
-    categories = db.query(CategoryModel).all()
+    categories = db.query(CategoryModel).filter(CategoryModel.user_id == current_user.id).all()
     return categories
 
 @router.post("/", response_model=Category)
@@ -28,12 +28,15 @@ def create_category(
     current_user: User = Depends(get_current_active_user)
 ):
     """Crear una nueva categoría"""
-    # Verificar si ya existe
-    existing = db.query(CategoryModel).filter(CategoryModel.name == category.name).first()
+    # Verificar si ya existe para este usuario
+    existing = db.query(CategoryModel).filter(
+        CategoryModel.name == category.name,
+        CategoryModel.user_id == current_user.id
+    ).first()
     if existing:
         raise HTTPException(status_code=400, detail="La categoría ya existe")
     
-    db_category = CategoryModel(**category.dict())
+    db_category = CategoryModel(**category.dict(), user_id=current_user.id)
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
@@ -47,7 +50,10 @@ def update_category(
     current_user: User = Depends(get_current_active_user)
 ):
     """Actualizar una categoría"""
-    db_category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    db_category = db.query(CategoryModel).filter(
+        CategoryModel.id == category_id,
+        CategoryModel.user_id == current_user.id
+    ).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
@@ -65,7 +71,10 @@ def delete_category(
     current_user: User = Depends(get_current_active_user)
 ):
     """Eliminar una categoría"""
-    db_category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    db_category = db.query(CategoryModel).filter(
+        CategoryModel.id == category_id,
+        CategoryModel.user_id == current_user.id
+    ).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
@@ -82,7 +91,8 @@ def get_subcategories(
 ):
     """Obtener subcategorías de una categoría"""
     subcategories = db.query(SubcategoryModel).filter(
-        SubcategoryModel.category_id == category_id
+        SubcategoryModel.category_id == category_id,
+        SubcategoryModel.user_id == current_user.id
     ).all()
     return subcategories
 
@@ -94,20 +104,24 @@ def create_subcategory(
     current_user: User = Depends(get_current_active_user)
 ):
     """Crear una nueva subcategoría"""
-    # Verificar que la categoría existe
-    category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    # Verificar que la categoría existe y pertenece al usuario
+    category = db.query(CategoryModel).filter(
+        CategoryModel.id == category_id,
+        CategoryModel.user_id == current_user.id
+    ).first()
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
     # Verificar subcategoría duplicada
     existing = db.query(SubcategoryModel).filter(
         SubcategoryModel.name == subcategory.name,
-        SubcategoryModel.category_id == category_id
+        SubcategoryModel.category_id == category_id,
+        SubcategoryModel.user_id == current_user.id
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="La subcategoría ya existe")
     
-    db_subcategory = SubcategoryModel(**subcategory.dict())
+    db_subcategory = SubcategoryModel(**subcategory.dict(), user_id=current_user.id)
     db.add(db_subcategory)
     db.commit()
     db.refresh(db_subcategory)
@@ -122,7 +136,8 @@ def update_subcategory(
 ):
     """Actualizar una subcategoría"""
     db_subcategory = db.query(SubcategoryModel).filter(
-        SubcategoryModel.id == subcategory_id
+        SubcategoryModel.id == subcategory_id,
+        SubcategoryModel.user_id == current_user.id
     ).first()
     if not db_subcategory:
         raise HTTPException(status_code=404, detail="Subcategoría no encontrada")
@@ -142,7 +157,8 @@ def delete_subcategory(
 ):
     """Eliminar una subcategoría"""
     db_subcategory = db.query(SubcategoryModel).filter(
-        SubcategoryModel.id == subcategory_id
+        SubcategoryModel.id == subcategory_id,
+        SubcategoryModel.user_id == current_user.id
     ).first()
     if not db_subcategory:
         raise HTTPException(status_code=404, detail="Subcategoría no encontrada")
@@ -165,9 +181,12 @@ def initialize_default_categories(
     
     created = []
     for cat_name in default_categories:
-        existing = db.query(CategoryModel).filter(CategoryModel.name == cat_name).first()
+        existing = db.query(CategoryModel).filter(
+            CategoryModel.name == cat_name,
+            CategoryModel.user_id == current_user.id
+        ).first()
         if not existing:
-            category = CategoryModel(name=cat_name)
+            category = CategoryModel(name=cat_name, user_id=current_user.id)
             db.add(category)
             created.append(cat_name)
     

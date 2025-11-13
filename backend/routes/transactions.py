@@ -29,7 +29,7 @@ def get_transactions(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtener lista de transacciones con filtros opcionales"""
-    query = db.query(TransactionModel)
+    query = db.query(TransactionModel).filter(TransactionModel.user_id == current_user.id)
     
     if bank_type:
         query = query.filter(TransactionModel.bank_type == bank_type)
@@ -68,7 +68,10 @@ def get_transaction(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtener una transacción específica"""
-    transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
+    transaction = db.query(TransactionModel).filter(
+        TransactionModel.id == transaction_id,
+        TransactionModel.user_id == current_user.id
+    ).first()
     if not transaction:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     return transaction
@@ -86,7 +89,10 @@ def update_transaction(
     current_user: User = Depends(get_current_active_user)
 ):
     """Actualizar una transacción (principalmente para categorización)"""
-    transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
+    transaction = db.query(TransactionModel).filter(
+        TransactionModel.id == transaction_id,
+        TransactionModel.user_id == current_user.id
+    ).first()
     if not transaction:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     
@@ -100,7 +106,8 @@ def update_transaction(
         
         # Actualizar todas las transacciones con la misma descripción
         transactions_to_update = db.query(TransactionModel).filter(
-            TransactionModel.description == description
+            TransactionModel.description == description,
+            TransactionModel.user_id == current_user.id
         ).all()
         
         for trans in transactions_to_update:
@@ -114,7 +121,8 @@ def update_transaction(
         
         if store_name:
             store_mapping = db.query(StoreMapping).filter(
-                StoreMapping.store_name == store_name
+                StoreMapping.store_name == store_name,
+                StoreMapping.user_id == current_user.id
             ).first()
             
             if store_mapping:
@@ -127,6 +135,7 @@ def update_transaction(
                 if transaction_update.category_id is not None:
                     new_mapping = StoreMapping(
                         store_name=store_name,
+                        user_id=current_user.id,
                         category_id=transaction_update.category_id,
                         subcategory_id=transaction_update.subcategory_id
                     )
@@ -149,7 +158,10 @@ def delete_transaction(
     current_user: User = Depends(get_current_active_user)
 ):
     """Eliminar una transacción"""
-    transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
+    transaction = db.query(TransactionModel).filter(
+        TransactionModel.id == transaction_id,
+        TransactionModel.user_id == current_user.id
+    ).first()
     if not transaction:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     
@@ -163,7 +175,10 @@ def get_uncategorized_count(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtener el número de transacciones sin categorizar"""
-    count = db.query(TransactionModel).filter(TransactionModel.category_id == None).count()
+    count = db.query(TransactionModel).filter(
+        TransactionModel.category_id == None,
+        TransactionModel.user_id == current_user.id
+    ).count()
     return {"count": count}
 
 @router.post("/bulk-categorize")
@@ -178,7 +193,8 @@ def bulk_categorize_transactions(
     
     # Actualizar todas las transacciones
     transactions = db.query(TransactionModel).filter(
-        TransactionModel.id.in_(request.transaction_ids)
+        TransactionModel.id.in_(request.transaction_ids),
+        TransactionModel.user_id == current_user.id
     ).all()
     
     if not transactions:
@@ -195,7 +211,8 @@ def bulk_categorize_transactions(
             store_name = transaction.description.split()[0] if transaction.description else ""
             if store_name:
                 store_mapping = db.query(StoreMapping).filter(
-                    StoreMapping.store_name == store_name
+                    StoreMapping.store_name == store_name,
+                    StoreMapping.user_id == current_user.id
                 ).first()
                 
                 if store_mapping:
@@ -205,6 +222,7 @@ def bulk_categorize_transactions(
                 else:
                     new_mapping = StoreMapping(
                         store_name=store_name,
+                        user_id=current_user.id,
                         category_id=request.category_id,
                         subcategory_id=request.subcategory_id
                     )
@@ -229,7 +247,8 @@ def bulk_delete_transactions(
     
     # Buscar las transacciones
     transactions = db.query(TransactionModel).filter(
-        TransactionModel.id.in_(transaction_ids)
+        TransactionModel.id.in_(transaction_ids),
+        TransactionModel.user_id == current_user.id
     ).all()
     
     if not transactions:
