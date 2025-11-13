@@ -9,12 +9,26 @@
 
 Aplicación web moderna para el control financiero doméstico con importación automática de extractos bancarios, categorización inteligente, y análisis visual de gastos e ingresos.
 
+## 🚀 Inicio en 3 Pasos
+
+```bash
+git clone https://github.com/asensionacher/control-de-gastos.git
+cd control-gastos
+./start.sh
+```
+
+Accede a http://localhost:3000/register y ¡listo! 🎉
+
+> 📚 Más detalles: [DOCKER.md](DOCKER.md) | [QUICK_START.md](QUICK_START.md)
+
 ## ✨ Características Principales
 
-### � Importación Multi-Banco
+### 🏦 Importación Multi-Banco
 - ✅ **Kutxabank** (Cuenta corriente y Tarjeta)
 - ✅ **Openbank**
 - ✅ **Imaginbank**
+- ✅ **BBVA**
+- ✅ **ING Direct**
 - 🔄 **Detección automática** de formato y banco
 - 📁 Soporte para **CSV, XLS, XLSX, HTML**
 - 🚫 **Detección de duplicados** automática
@@ -53,21 +67,29 @@ Aplicación web moderna para el control financiero doméstico con importación a
 git clone https://github.com/asensionacher/control-de-gastos.git
 cd control-gastos
 
-# 2. Crear directorio de datos
-mkdir -p data
+# 2. Iniciar con el script automático (configura todo)
+./start.sh
 
-# 3. Iniciar la aplicación
-docker-compose up -d
-
-# 4. Acceder a la aplicación
-# Frontend: http://localhost:3000
-# API: http://localhost:8000
-# Documentación API: http://localhost:8000/docs
+# ¡Listo! Accede a http://localhost:3000/register
 ```
 
-### Instalación Manual
+**El script `start.sh` automáticamente:**
+- ✅ Genera una SECRET_KEY segura
+- ✅ Crea el archivo `.env` con la configuración
+- ✅ Construye e inicia los contenedores
+- ✅ Crea el directorio de datos
+
+**Alternativa manual:**
+```bash
+docker-compose up -d
+```
+
+### Instalación Manual (sin Docker)
 
 ```bash
+# Configurar entorno (genera SECRET_KEY automáticamente)
+./setup_env.sh
+
 # Backend
 cd backend
 
@@ -77,9 +99,6 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Instalar dependencias
 pip install -r requirements.txt
-
-# Configurar base de datos
-python -c "from database import create_tables; create_tables()"
 
 # Iniciar servidor
 uvicorn main:app --reload --port 8000
@@ -98,9 +117,26 @@ npm start
 
 **Acceso:**
 - Frontend: http://localhost:3000
+- Registro: http://localhost:3000/register (crea tu primer usuario)
 - API: http://localhost:8000/docs
 
 > 💡 **Nota**: Para desarrollo, consulta la sección [🛠️ Desarrollo](#%EF%B8%8F-desarrollo) más abajo.
+
+## 🔐 Autenticación
+
+La aplicación incluye un sistema completo de autenticación:
+
+- **Registro de usuarios** con username y contraseña
+- **Tokens JWT** con validez de 30 días
+- **Protección de todas las rutas** de la API
+- **Gestión automática de sesión** en el frontend
+
+**Primera vez:**
+1. Accede a `/register` y crea tu usuario
+2. Inicia sesión en `/login`
+3. El token se guarda automáticamente y se renueva en cada petición
+
+> 📚 Más detalles en [AUTH_IMPLEMENTATION.md](AUTH_IMPLEMENTATION.md)
 
 ## 📖 Uso
 
@@ -241,16 +277,16 @@ Documentación interactiva completa en: `http://localhost:8000/docs`
 
 ### Principales Endpoints
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/api/transactions/` | Lista transacciones (con filtros) |
-| `PUT` | `/api/transactions/{id}` | Actualiza transacción |
-| `POST` | `/api/transactions/bulk-categorize` | Categorización masiva |
-| `POST` | `/api/transactions/bulk-delete` | Eliminación masiva |
-| `GET` | `/api/categories/` | Lista categorías |
-| `POST` | `/api/upload/` | Importar archivo |
-| `POST` | `/api/upload/detect-bank` | Detectar banco del archivo |
-| `GET` | `/api/reports/summary` | Resumen completo |
+| Método | Endpoint                            | Descripción                       |
+| ------ | ----------------------------------- | --------------------------------- |
+| `GET`  | `/api/transactions/`                | Lista transacciones (con filtros) |
+| `PUT`  | `/api/transactions/{id}`            | Actualiza transacción             |
+| `POST` | `/api/transactions/bulk-categorize` | Categorización masiva             |
+| `POST` | `/api/transactions/bulk-delete`     | Eliminación masiva                |
+| `GET`  | `/api/categories/`                  | Lista categorías                  |
+| `POST` | `/api/upload/`                      | Importar archivo                  |
+| `POST` | `/api/upload/detect-bank`           | Detectar banco del archivo        |
+| `GET`  | `/api/reports/summary`              | Resumen completo                  |
 
 ## 🛠️ Desarrollo
 

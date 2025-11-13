@@ -91,7 +91,7 @@ control-gastos/
 
 #### `transactions`
 - id (PK)
-- bank_type (kutxabank_account, kutxabank_card, openbank, imaginbank)
+- bank_type (kutxabank_account, kutxabank_card, openbank, imaginbank, bbva, ing)
 - date (indexed)
 - description
 - amount
@@ -212,6 +212,16 @@ Cada banco tiene su propio parser que:
 #### Imaginbank
 - Formato: `Fecha;Concepto;Importe;Saldo`
 - Similar a cuenta Kutxabank
+
+#### BBVA
+- Formato: XLSX con columnas `F.Valor;Fecha;Concepto;Movimiento;Importe;Disponible`
+- Detección dinámica de cabeceras
+- Combina concepto y movimiento en descripción
+
+#### ING Direct
+- Formato: XLS con columnas `F. VALOR;CATEGORÍA;SUBCATEGORÍA;DESCRIPCIÓN;IMPORTE (€);SALDO (€)`
+- Detección dinámica de cabeceras
+- Incluye categorización propia del banco
 
 ## 🛡️ Características de Seguridad
 

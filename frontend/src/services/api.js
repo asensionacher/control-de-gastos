@@ -9,6 +9,47 @@ const api = axios.create({
   },
 });
 
+// Interceptor para añadir el token a las peticiones
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para manejar errores de autenticación
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expirado o inválido
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth
+export const register = (username, password) => {
+  return api.post('/api/auth/register', { username, password });
+};
+
+export const login = (username, password) => {
+  return api.post('/api/auth/login', { username, password });
+};
+
+export const getCurrentUser = () => {
+  return api.get('/api/auth/me');
+};
+
 // Transactions
 export const getTransactions = (params = {}) => {
   return api.get('/api/transactions/', { params });
@@ -86,7 +127,7 @@ export const initDefaultCategories = () => {
 // Upload
 export const uploadCSV = (files, bankType = null) => {
   const formData = new FormData();
-  
+
   // Soportar múltiples archivos o un solo archivo
   if (Array.isArray(files)) {
     files.forEach(file => {
@@ -95,7 +136,7 @@ export const uploadCSV = (files, bankType = null) => {
   } else {
     formData.append('files', files);
   }
-  
+
   if (bankType) {
     formData.append('bank_type', bankType);
   }
@@ -128,14 +169,14 @@ export const getMonthlyReport = (months = 12) => {
 };
 
 export const getCategoryReport = (startDate, endDate) => {
-  return api.get('/api/reports/by-category', { 
-    params: { start_date: startDate, end_date: endDate } 
+  return api.get('/api/reports/by-category', {
+    params: { start_date: startDate, end_date: endDate }
   });
 };
 
 export const getTopExpenses = (limit = 10, startDate, endDate) => {
-  return api.get('/api/reports/top-expenses', { 
-    params: { limit, start_date: startDate, end_date: endDate } 
+  return api.get('/api/reports/top-expenses', {
+    params: { limit, start_date: startDate, end_date: endDate }
   });
 };
 

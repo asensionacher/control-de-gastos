@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Q
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from database import get_db
-from models import Transaction as TransactionModel, StoreMapping
+from models import Transaction as TransactionModel, StoreMapping, User
 from schemas import UploadResponse
 from parsers import get_parser
 from bank_detector import BankDetector
 from typing import Optional, List
+from auth import get_current_active_user
 
 router = APIRouter()
 
@@ -14,7 +15,8 @@ router = APIRouter()
 async def upload_csv(
     files: List[UploadFile] = File(...),
     bank_type: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Subir uno o varios archivos de extracto bancario (CSV, XLS, HTML)

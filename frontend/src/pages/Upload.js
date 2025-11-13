@@ -30,12 +30,12 @@ function Upload() {
       setFiles(selectedFiles);
       setResult(null);
       setDetectedBanks({});
-      
+
       // Intentar detectar automáticamente el banco de cada archivo
       if (useAutoDetect) {
         setDetecting(true);
         const detections = {};
-        
+
         for (const file of selectedFiles) {
           try {
             const response = await detectBank(file);
@@ -45,7 +45,7 @@ function Upload() {
             detections[file.name] = { success: false };
           }
         }
-        
+
         setDetectedBanks(detections);
         setDetecting(false);
       }
@@ -79,7 +79,7 @@ function Upload() {
       setFiles([]);
       setDetectedBanks({});
       setSelectedBank('');
-      
+
       // Reset file input
       document.getElementById('file-input').value = '';
     } catch (error) {
@@ -120,8 +120,8 @@ function Upload() {
               <span>Detectar banco automáticamente</span>
             </label>
             <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#a8a8a8' }}>
-              {useAutoDetect 
-                ? 'El sistema intentará identificar el banco al subir el archivo' 
+              {useAutoDetect
+                ? 'El sistema intentará identificar el banco al subir el archivo'
                 : 'Selecciona manualmente el banco antes de subir'}
             </p>
           </div>
@@ -158,14 +158,14 @@ function Upload() {
               multiple
               required
             />
-            
+
             {/* Indicador de detección */}
             {detecting && (
               <p style={{ marginTop: '0.5rem', color: '#00d9a3' }}>
                 🔍 Detectando bancos...
               </p>
             )}
-            
+
             {/* Lista de archivos seleccionados con detección */}
             {files.length > 0 && !detecting && (
               <div style={{ marginTop: '1rem' }}>
@@ -176,9 +176,9 @@ function Upload() {
                   {files.map((file, index) => {
                     const detection = detectedBanks[file.name];
                     return (
-                      <li 
-                        key={index} 
-                        style={{ 
+                      <li
+                        key={index}
+                        style={{
                           marginBottom: '0.5rem',
                           padding: '0.5rem',
                           background: '#1a1a1a',
@@ -189,12 +189,12 @@ function Upload() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ color: '#a8a8a8' }}>📄 {file.name}</span>
                           {detection && (
-                            <span style={{ 
+                            <span style={{
                               color: detection.success ? '#00d9a3' : '#ff9f1c',
                               fontSize: '0.9rem'
                             }}>
-                              {detection.success 
-                                ? `✓ ${detection.bank_name}` 
+                              {detection.success
+                                ? `✓ ${detection.bank_name}`
                                 : '⚠️ No detectado'}
                             </span>
                           )}
@@ -203,13 +203,13 @@ function Upload() {
                     );
                   })}
                 </ul>
-                
+
                 {/* Advertencia si algún archivo no se detectó */}
                 {useAutoDetect && Object.values(detectedBanks).some(d => !d.success) && (
                   <p style={{ color: '#ff9f1c', marginTop: '0.5rem' }}>
                     ⚠️ Algunos archivos no se pudieron detectar.
                     <br />
-                    <span 
+                    <span
                       style={{ cursor: 'pointer', textDecoration: 'underline', marginTop: '0.25rem', display: 'inline-block' }}
                       onClick={() => {
                         setUseAutoDetect(false);
@@ -240,20 +240,20 @@ function Upload() {
           <h3 style={{ marginBottom: '1rem' }}>
             {result.success ? '✓ Importación Completada' : '✗ Error en la Importación'}
           </h3>
-          <pre style={{ 
-            whiteSpace: 'pre-wrap', 
+          <pre style={{
+            whiteSpace: 'pre-wrap',
             fontFamily: 'inherit',
             margin: 0,
             lineHeight: '1.6'
           }}>
             {result.message}
           </pre>
-          
+
           {result.success && (
-            <div style={{ 
-              marginTop: '1rem', 
-              paddingTop: '1rem', 
-              borderTop: '1px solid rgba(255,255,255,0.1)' 
+            <div style={{
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid rgba(255,255,255,0.1)'
             }}>
               <p><strong>Total de filas:</strong> {result.total_rows}</p>
               <p><strong>Importadas:</strong> {result.imported}</p>
@@ -281,7 +281,7 @@ function Upload() {
             Descarga el extracto bancario desde tu entidad y súbelo aquí.
             El sistema puede detectar automáticamente el formato o puedes seleccionarlo manualmente.
           </p>
-          
+
           <h4 style={{ color: '#e8e8e8', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
             Bancos soportados:
           </h4>
@@ -290,6 +290,8 @@ function Upload() {
             <li><strong>Kutxabank</strong> - Tarjeta de Crédito (XLS)</li>
             <li><strong>Openbank</strong> - Exportación HTML/XLS</li>
             <li><strong>Imaginbank</strong> - CSV</li>
+            <li><strong>BBVA</strong> - Exportación XLSX</li>
+            <li><strong>ING Direct</strong> - Exportación XLS</li>
           </ul>
 
           <h4 style={{ color: '#e8e8e8', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
@@ -298,7 +300,7 @@ function Upload() {
           <ul style={{ paddingLeft: '1.5rem' }}>
             <li>✓ Carga múltiple de archivos</li>
             <li>✓ Detección automática del banco y formato</li>
-            <li>✓ Soporte para CSV, XLS y HTML</li>
+            <li>✓ Soporte para CSV, XLS, XLSX y HTML</li>
             <li>✓ Detección automática de duplicados</li>
             <li>✓ Auto-categorización basada en historial</li>
             <li>✓ Validación de datos</li>

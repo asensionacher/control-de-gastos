@@ -1,6 +1,28 @@
 # Guía de Inicio Rápido - Control de Gastos
 
-## 🚀 Inicio Rápido (con Docker)
+## 🚀 Inicio Súper Rápido (3 pasos)
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/asensionacher/control-de-gastos.git
+cd control-gastos
+
+# 2. Ejecutar el script de inicio
+./start.sh
+
+# 3. ¡Listo! Accede a http://localhost:3000/register
+```
+
+**Eso es todo.** El script `start.sh` configura automáticamente:
+- ✅ SECRET_KEY para autenticación
+- ✅ Archivo `.env` con configuración
+- ✅ Contenedores Docker
+- ✅ Base de datos
+- ✅ Frontend y Backend
+
+---
+
+## 🚀 Inicio Rápido (Detallado)
 
 ### 1. Requisitos Previos
 - Docker instalado
@@ -9,44 +31,54 @@
 ### 2. Iniciar la aplicación
 
 ```bash
-# Opción 1: Usar el script de inicio
+# Opción 1: Usar el script de inicio (Recomendado)
 ./start.sh
 
-# Opción 2: Manualmente
+# Opción 2: Manualmente con docker-compose
 docker-compose up -d
 ```
 
+**Nota:** Si usas la opción 2, asegúrate de tener el archivo `backend/.env` configurado.
+
 ### 3. Acceder a la aplicación
 - **Frontend**: http://localhost:3000
+- **Registro**: http://localhost:3000/register (primera vez)
 - **Backend API**: http://localhost:8000
 - **Documentación interactiva**: http://localhost:8000/docs
 
 ### 4. Primeros pasos
 
-#### a) Inicializar categorías
+#### a) Crear tu usuario
+1. Accede a http://localhost:3000/register
+2. Crea un usuario con tu nombre de usuario y contraseña
+3. Inicia sesión en http://localhost:3000/login
+
+#### b) Inicializar categorías
 1. Ve a la sección "Categorías"
 2. Haz clic en "Cargar Por Defecto" para crear las categorías predefinidas:
    - Hipoteca, Coche, Gasolina, Parking, Comida, Niños, Cumpleaños, 
      Préstamos, Suministros, Colegio, Salud, IBI
 
-#### b) Subir tu primer CSV
+#### c) Subir tu primer CSV
 1. Ve a "Subir CSV/XLS"
 2. Selecciona el banco correspondiente:
    - Kutxabank - Cuenta Corriente
    - Kutxabank - Tarjeta de Crédito
    - Openbank
    - Imaginbank
+   - BBVA
+   - ING Direct
 3. Selecciona tu archivo CSV o XLS
 4. Haz clic en "Subir ficheros/"
 5. El sistema detectará automáticamente duplicados
 
-#### c) Categorizar transacciones
+#### d) Categorizar transacciones
 1. Ve a "Transacciones"
 2. Para cada transacción sin categoría, haz clic en "Editar"
 3. Selecciona la categoría apropiada
 4. La próxima vez que aparezca ese establecimiento, se categorizará automáticamente
 
-#### d) Ver reportes
+#### e) Ver reportes
 1. Ve a "Reportes"
 2. Visualiza:
    - Evolución mensual de ingresos y gastos
@@ -113,6 +145,8 @@ Los CSV deben descargarse directamente de tu banco. El sistema detecta automáti
 **Kutxabank Tarjeta**: `Fecha;Fecha Valor;Concepto;Importe`
 **Openbank**: `Fecha;Concepto;Cargo;Abono;Saldo`
 **Imaginbank**: `Fecha;Concepto;Importe;Saldo`
+**BBVA**: `F.Valor;Fecha;Concepto;Movimiento;Importe;Disponible` (XLSX)
+**ING Direct**: `F. VALOR;CATEGORÍA;SUBCATEGORÍA;DESCRIPCIÓN;IMPORTE (€);SALDO (€)` (XLS)
 
 ## 🔍 Características Clave
 

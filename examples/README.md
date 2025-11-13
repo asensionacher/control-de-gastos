@@ -30,6 +30,18 @@ Este directorio contiene ejemplos de archivos bancarios que puedes usar para pro
 - Transacciones de ejemplo: transferencias, compras
 - Detección automática: ✓
 
+### 5. BBVA
+**Archivo**: `bbva_ejemplo.xlsx`
+- Formato: XLSX
+- Transacciones de ejemplo: traspasos, programa tu cuenta
+- Detección automática: ✓
+
+### 6. ING Direct
+**Archivo**: `ing_ejemplo.xls`
+- Formato: XLS
+- Transacciones de ejemplo: transferencias, ingresos, ventajas ING
+- Detección automática: ✓
+
 ## 🔧 Cómo usar estos archivos
 
 1. Ve a la sección "Subir Extracto Bancario" en la aplicación

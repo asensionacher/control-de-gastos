@@ -94,7 +94,7 @@ Subcategorías para clasificación más detallada.
 Transacciones bancarias importadas.
 ```python
 - id: int (PK)
-- bank_type: str (kutxabank_account, kutxabank_card, openbank, imaginbank)
+- bank_type: str (kutxabank_account, kutxabank_card, openbank, imaginbank, bbva, ing)
 - date: datetime (indexed)
 - description: str
 - amount: float
@@ -327,6 +327,24 @@ Todos los parsers heredan de `BaseParser`:
   - Sufijo "EUR" en importes (ej: "-217,98EUR")
   - Separador: punto y coma
   - Decimal: coma
+
+#### BBVA
+- **Formato**: XLSX (Excel moderno)
+- **Columnas**: F.Valor, Fecha, Concepto, Movimiento, Importe, Divisa, Disponible, Observaciones
+- **Particularidades**:
+  - Header dinámico (busca "F.Valor" en las primeras filas)
+  - Combina "Concepto" y "Movimiento" en la descripción
+  - Incluye observaciones en extra_info
+  - Soporta múltiples formatos de fecha
+
+#### ING Direct
+- **Formato**: XLS (Excel 97-2003)
+- **Columnas**: F. VALOR, CATEGORÍA, SUBCATEGORÍA, DESCRIPCIÓN, COMENTARIO, IMAGEN, IMPORTE (€), SALDO (€)
+- **Particularidades**:
+  - Header dinámico (busca "F. VALOR" en las primeras filas)
+  - Combina categoría, subcategoría y descripción
+  - Incluye comentarios en extra_info
+  - Categorías propias de ING ("Ventajas ING", "Movimientos excluidos", etc.)
 
 ### Añadir un Nuevo Banco
 

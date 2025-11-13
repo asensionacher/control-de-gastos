@@ -133,31 +133,121 @@ class BankDetector:
             return False
     
     @staticmethod
+    def detect_bbva(file_content: bytes) -> bool:
+        """Detectar si el archivo es de BBVA"""
+        try:
+            # BBVA usa archivos Excel (.xlsx principalmente)
+            is_xls = BankDetector.is_binary_xls(file_content)
+            is_xlsx_file = BankDetector.is_xlsx(file_content)
+            
+            if is_xls or is_xlsx_file:
+                import pandas as pd
+                try:
+                    # Leer el archivo
+                    if is_xlsx_file:
+                        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', header=None)
+                    else:
+                        df = pd.read_excel(BytesIO(file_content), engine='xlrd', header=None)
+                    
+                    # Convertir a string para buscar patrones
+                    content_str = ' '.join([
+                        ' '.join([str(val) for val in row if pd.notna(val)])
+                        for _, row in df.iterrows()
+                    ]).lower()
+                    
+                    # Patrones específicos de BBVA:
+                    # - Tienen "Últimos movimientos" en el encabezado
+                    # - Columnas: F.Valor, Fecha, Concepto, Movimiento, Importe, Divisa, Disponible
+                    if ('últimos movimientos' in content_str or 'ultimos movimientos' in content_str or
+                        ('f.valor' in content_str and 'disponible' in content_str) or
+                        ('bbva' in content_str)):
+                        return True
+                    
+                    return False
+                except:
+                    return False
+            return False
+        except:
+            return False
+    
+    @staticmethod
+    def detect_ing(file_content: bytes) -> bool:
+        """Detectar si el archivo es de ING Direct"""
+        try:
+            # ING usa archivos Excel (.xls principalmente)
+            is_xls = BankDetector.is_binary_xls(file_content)
+            is_xlsx_file = BankDetector.is_xlsx(file_content)
+            
+            if is_xls or is_xlsx_file:
+                import pandas as pd
+                try:
+                    # Leer el archivo
+                    if is_xls:
+                        df = pd.read_excel(BytesIO(file_content), engine='xlrd', header=None)
+                    else:
+                        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', header=None)
+                    
+                    # Convertir a string para buscar patrones
+                    content_str = ' '.join([
+                        ' '.join([str(val) for val in row if pd.notna(val)])
+                        for _, row in df.iterrows()
+                    ]).lower()
+                    
+                    # Patrones específicos de ING:
+                    # - "Movimientos de la Cuenta" en el título
+                    # - Columnas: F. VALOR, CATEGORÍA, SUBCATEGORÍA, DESCRIPCIÓN, IMPORTE (€), SALDO (€)
+                    # - "Ventajas ING" como categoría típica
+                    if ('movimientos de la cuenta' in content_str or
+                        'ventajas ing' in content_str or
+                        ('f. valor' in content_str and 'categoría' in content_str and 'subcategoría' in content_str) or
+                        ('f. valor' in content_str and 'categoria' in content_str and 'subcategoria' in content_str)):
+                        return True
+                    
+                    return False
+                except:
+                    return False
+            return False
+        except:
+            return False
+    
+    @staticmethod
     def detect_bank_type(file_content: bytes, filename: str = "") -> Optional[str]:
         """
         Detecta automáticamente el tipo de banco basándose en el contenido del archivo.
         
         Returns:
-            str: El tipo de banco ('openbank', 'kutxabank_account', 'kutxabank_card', 'imaginbank')
+            str: El tipo de banco ('openbank', 'kutxabank_account', 'kutxabank_card', 'imaginbank', 'bbva', 'ing')
             None: Si no se puede detectar
         """
         # 1. Verificar Openbank (HTML disfrazado como XLS)
         if BankDetector.detect_openbank(file_content):
             return 'openbank'
         
-        # 2. Verificar Kutxabank (XLS binario)
+        # 2. Verificar BBVA (Excel con "Últimos movimientos")
+        if BankDetector.detect_bbva(file_content):
+            return 'bbva'
+        
+        # 3. Verificar ING Direct (Excel con "Movimientos de la Cuenta")
+        if BankDetector.detect_ing(file_content):
+            return 'ing'
+        
+        # 4. Verificar Kutxabank (XLS binario)
         is_kutxa, kutxa_type = BankDetector.detect_kutxabank(file_content)
         if is_kutxa:
             return kutxa_type
         
-        # 3. Verificar Imaginbank (CSV con EUR)
+        # 5. Verificar Imaginbank (CSV con EUR)
         if BankDetector.detect_imaginbank(file_content):
             return 'imaginbank'
         
-        # 4. Si no se detecta, intentar por extensión del archivo
+        # 6. Si no se detecta, intentar por extensión del archivo
         if filename:
             filename_lower = filename.lower()
-            if 'openbank' in filename_lower:
+            if 'bbva' in filename_lower:
+                return 'bbva'
+            elif 'ing' in filename_lower:
+                return 'ing'
+            elif 'openbank' in filename_lower:
                 return 'openbank'
             elif 'kutxabank' in filename_lower or 'kutxa' in filename_lower:
                 if 'tarjeta' in filename_lower or 'card' in filename_lower:
@@ -176,5 +266,7 @@ class BankDetector:
             {'value': 'kutxabank_account', 'label': 'Kutxabank - Cuenta Corriente'},
             {'value': 'kutxabank_card', 'label': 'Kutxabank - Tarjeta de Crédito'},
             {'value': 'openbank', 'label': 'Openbank'},
-            {'value': 'imaginbank', 'label': 'Imaginbank'}
+            {'value': 'imaginbank', 'label': 'Imaginbank'},
+            {'value': 'bbva', 'label': 'BBVA'},
+            {'value': 'ing', 'label': 'ING Direct'}
         ]

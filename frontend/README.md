@@ -113,7 +113,7 @@ Gestión completa de transacciones:
 **Filtros:**
 - 📝 Descripción (búsqueda en tiempo real, min 3 chars)
 - 💰 Tipo (gastos/ingresos)
-- 🏦 Banco (Kutxabank cuenta/tarjeta, Openbank, Imaginbank)
+- 🏦 Banco (Kutxabank cuenta/tarjeta, Openbank, Imaginbank, BBVA, ING Direct)
 - 🏷️ Categoría (incluye "Sin categoría")
 - 📅 Rango de fechas (desde/hasta)
 - 🔄 Botón limpiar filtros

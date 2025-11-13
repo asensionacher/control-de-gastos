@@ -2,17 +2,19 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, case
 from database import get_db
-from models import Transaction as TransactionModel, Category as CategoryModel
+from models import Transaction as TransactionModel, Category as CategoryModel, User
 from schemas import MonthlyReport, CategoryReport, ReportSummary, Transaction
 from typing import List, Optional
 from datetime import datetime, timedelta
+from auth import get_current_active_user
 
 router = APIRouter()
 
 @router.get("/monthly", response_model=List[MonthlyReport])
 def get_monthly_report(
     months: int = Query(12, description="Número de meses a incluir"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener reporte mensual de ingresos y gastos"""
     # Calcular fecha de inicio
@@ -45,7 +47,8 @@ def get_monthly_report(
 def get_category_report(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener reporte de gastos por categoría"""
     query = db.query(
@@ -91,7 +94,8 @@ def get_top_expenses(
     limit: int = Query(10, description="Número de gastos a devolver"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener los gastos más grandes"""
     query = db.query(TransactionModel).filter(
@@ -111,24 +115,27 @@ def get_top_expenses(
 @router.get("/summary", response_model=ReportSummary)
 def get_report_summary(
     months: int = Query(6, description="Número de meses"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener resumen completo de reportes"""
     end_date = datetime.now()
     start_date = end_date - timedelta(days=months * 30)
     
     # Obtener reportes
-    monthly = get_monthly_report(months=months, db=db)
+    monthly = get_monthly_report(months=months, db=db, current_user=current_user)
     categories = get_category_report(
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
-        db=db
+        db=db,
+        current_user=current_user
     )
     top_expenses = get_top_expenses(
         limit=10,
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
-        db=db
+        db=db,
+        current_user=current_user
     )
     
     return ReportSummary(
@@ -138,7 +145,10 @@ def get_report_summary(
     )
 
 @router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
+def get_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Obtener estadísticas generales"""
     total_transactions = db.query(TransactionModel).count()
     total_income = db.query(func.sum(TransactionModel.amount)).filter(

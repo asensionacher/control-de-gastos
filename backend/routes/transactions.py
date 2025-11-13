@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from models import Transaction as TransactionModel, StoreMapping
+from models import Transaction as TransactionModel, StoreMapping, User
 from schemas import Transaction, TransactionUpdate
 from datetime import datetime
 from pydantic import BaseModel
+from auth import get_current_active_user
 
 router = APIRouter()
 
@@ -24,7 +25,8 @@ def get_transactions(
     description: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener lista de transacciones con filtros opcionales"""
     query = db.query(TransactionModel)
@@ -60,7 +62,11 @@ def get_transactions(
     return transactions
 
 @router.get("/{transaction_id}", response_model=Transaction)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def get_transaction(
+    transaction_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Obtener una transacción específica"""
     transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
     if not transaction:
@@ -76,7 +82,8 @@ class TransactionUpdate(BaseModel):
 def update_transaction(
     transaction_id: int,
     transaction_update: TransactionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Actualizar una transacción (principalmente para categorización)"""
     transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
@@ -136,7 +143,11 @@ def update_transaction(
     return transaction
 
 @router.delete("/{transaction_id}")
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def delete_transaction(
+    transaction_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Eliminar una transacción"""
     transaction = db.query(TransactionModel).filter(TransactionModel.id == transaction_id).first()
     if not transaction:
@@ -147,7 +158,10 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return {"message": "Transacción eliminada correctamente"}
 
 @router.get("/uncategorized/count")
-def get_uncategorized_count(db: Session = Depends(get_db)):
+def get_uncategorized_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Obtener el número de transacciones sin categorizar"""
     count = db.query(TransactionModel).filter(TransactionModel.category_id == None).count()
     return {"count": count}
@@ -155,7 +169,8 @@ def get_uncategorized_count(db: Session = Depends(get_db)):
 @router.post("/bulk-categorize")
 def bulk_categorize_transactions(
     request: BulkCategorizeRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Categorizar múltiples transacciones a la vez"""
     if not request.transaction_ids:
@@ -205,7 +220,8 @@ def bulk_categorize_transactions(
 @router.post("/bulk-delete")
 def bulk_delete_transactions(
     transaction_ids: List[int],
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Eliminar múltiples transacciones a la vez"""
     if not transaction_ids:
