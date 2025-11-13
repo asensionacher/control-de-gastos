@@ -41,11 +41,11 @@ else
 fi
 
 echo "�📦 Construyendo contenedores..."
-docker-compose build
+docker compose build
 
 echo ""
 echo "🔧 Iniciando servicios..."
-docker-compose up -d
+docker compose up -d
 
 echo ""
 echo "✅ ¡Aplicación iniciada correctamente!"
